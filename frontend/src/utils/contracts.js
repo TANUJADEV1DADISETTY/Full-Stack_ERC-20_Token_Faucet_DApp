@@ -7,7 +7,9 @@ const TOKEN_ABI = [
 const FAUCET_ABI = [
   "function requestTokens()",
   "function canClaim(address) view returns (bool)",
-  "function remainingAllowance(address) view returns (uint256)"
+  "function remainingAllowance(address) view returns (uint256)",
+  "function lastClaimAt(address) view returns (uint256)",
+  "function isPaused() view returns (bool)"
 ];
 
 export function getProvider() {

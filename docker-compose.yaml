@@ -4,7 +4,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - '3000:3000'
+      - '3008:3000'
     environment:
       - VITE_RPC_URL=${VITE_RPC_URL}
       - VITE_TOKEN_ADDRESS=${VITE_TOKEN_ADDRESS}

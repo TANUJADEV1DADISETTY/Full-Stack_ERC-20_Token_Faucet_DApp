@@ -26,41 +26,28 @@ contract TokenFaucet {
     }
 
     function requestTokens() external {
-    require(!paused, "Faucet is paused");
+        require(!paused, "Faucet is paused");
+        
+        // Detailed revert checks as per mandatory requirements
+        require(block.timestamp >= lastClaimAt[msg.sender] + COOLDOWN_TIME, "Cooldown period not elapsed");
+        require(totalClaimed[msg.sender] + FAUCET_AMOUNT <= MAX_CLAIM_AMOUNT, "Lifetime claim limit reached");
+        require(token.totalSupply() + FAUCET_AMOUNT <= token.MAX_SUPPLY(), "Faucet has insufficient token balance");
 
-    // Lifetime limit check FIRST
-    require(
-        totalClaimed[msg.sender] < MAX_CLAIM_AMOUNT,
-        "Lifetime limit exceeded"
-    );
+        lastClaimAt[msg.sender] = block.timestamp;
+        totalClaimed[msg.sender] += FAUCET_AMOUNT;
 
-    // Cooldown check
-    require(
-        block.timestamp >= lastClaimAt[msg.sender] + COOLDOWN_TIME,
-        "Cooldown period not finished"
-    );
+        token.mint(msg.sender, FAUCET_AMOUNT);
 
-    require(
-        remainingAllowance(msg.sender) >= FAUCET_AMOUNT,
-        "Lifetime limit exceeded"
-    );
-
-    lastClaimAt[msg.sender] = block.timestamp;
-    totalClaimed[msg.sender] += FAUCET_AMOUNT;
-
-    token.mint(msg.sender, FAUCET_AMOUNT);
-
-    emit TokensClaimed(msg.sender, FAUCET_AMOUNT, block.timestamp);
-}
-
+        emit TokensClaimed(msg.sender, FAUCET_AMOUNT, block.timestamp);
+    }
 
     function canClaim(address user) public view returns (bool) {
-    if (paused) return false;
-    if (totalClaimed[user] >= MAX_CLAIM_AMOUNT) return false;
-    if (block.timestamp < lastClaimAt[user] + COOLDOWN_TIME) return false;
-    return true;
-}
-
+        if (paused) return false;
+        if (totalClaimed[user] + FAUCET_AMOUNT > MAX_CLAIM_AMOUNT) return false;
+        if (block.timestamp < lastClaimAt[user] + COOLDOWN_TIME) return false;
+        if (token.totalSupply() + FAUCET_AMOUNT > token.MAX_SUPPLY()) return false;
+        return true;
+    }
 
     function remainingAllowance(address user) public view returns (uint256) {
         if (totalClaimed[user] >= MAX_CLAIM_AMOUNT) {
@@ -70,12 +57,12 @@ contract TokenFaucet {
     }
 
     function setPaused(bool _paused) external {
-        require(msg.sender == admin, "Only admin can pause");
+        require(msg.sender == admin, "Only admin can control pause");
         paused = _paused;
         emit FaucetPaused(_paused);
     }
 
-    function isPaused() external view returns (bool) {
+    function isPaused() public view returns (bool) {
         return paused;
     }
 }

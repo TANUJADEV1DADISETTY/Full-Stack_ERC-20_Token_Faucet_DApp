@@ -1,39 +1,27 @@
 import { ethers } from "ethers";
-import tokenAbi from "./Token.json";
-import faucetAbi from "./TokenFaucet.json";
 
 const tokenAddress = import.meta.env.VITE_TOKEN_ADDRESS;
 const faucetAddress = import.meta.env.VITE_FAUCET_ADDRESS;
 
-let provider;
-let signer;
+const TOKEN_ABI = ["function balanceOf(address) view returns (uint256)"];
+const FAUCET_ABI = [
+  "function requestTokens() external",
+  "function canClaim(address) view returns (bool)",
+  "function remainingAllowance(address) view returns (uint256)",
+  "function isPaused() view returns (bool)"
+];
 
 async function getProvider() {
-  if (!provider) {
-    provider = new ethers.BrowserProvider(window.ethereum);
-  }
-  return provider;
+  if (!window.ethereum) throw new Error("MetaMask not found");
+  return new ethers.BrowserProvider(window.ethereum);
 }
 
 async function getSigner() {
-  if (!signer) {
-    const p = await getProvider();
-    signer = await p.getSigner();
-  }
-  return signer;
+  const provider = await getProvider();
+  return await provider.getSigner();
 }
 
-async function getToken() {
-  const s = await getSigner();
-  return new ethers.Contract(tokenAddress, tokenAbi, s);
-}
-
-async function getFaucet() {
-  const s = await getSigner();
-  return new ethers.Contract(faucetAddress, faucetAbi, s);
-}
-
-window._EVAL_ = {
+window.EVAL = {
   connectWallet: async () => {
     if (!window.ethereum) throw new Error("MetaMask not found");
     const accounts = await window.ethereum.request({
@@ -43,25 +31,29 @@ window._EVAL_ = {
   },
 
   requestTokens: async () => {
-    const faucet = await getFaucet();
+    const signer = await getSigner();
+    const faucet = new ethers.Contract(faucetAddress, FAUCET_ABI, signer);
     const tx = await faucet.requestTokens();
-    await tx.wait();
+    const receipt = await tx.wait();
     return tx.hash;
   },
 
   getBalance: async (address) => {
-    const token = await getToken();
+    const provider = await getProvider();
+    const token = new ethers.Contract(tokenAddress, TOKEN_ABI, provider);
     const balance = await token.balanceOf(address);
     return balance.toString();
   },
 
   canClaim: async (address) => {
-    const faucet = await getFaucet();
+    const provider = await getProvider();
+    const faucet = new ethers.Contract(faucetAddress, FAUCET_ABI, provider);
     return await faucet.canClaim(address);
   },
 
   getRemainingAllowance: async (address) => {
-    const faucet = await getFaucet();
+    const provider = await getProvider();
+    const faucet = new ethers.Contract(faucetAddress, FAUCET_ABI, provider);
     const rem = await faucet.remainingAllowance(address);
     return rem.toString();
   },

@@ -31,12 +31,11 @@ describe("TokenFaucet", function () {
   });
 
   it("prevents claiming during cooldown", async function () {
-  await faucet.connect(user1).requestTokens();
-  await expect(
-    faucet.connect(user1).requestTokens()
-  ).to.be.revertedWith("Cooldown period not finished");
-});
-
+    await faucet.connect(user1).requestTokens();
+    await expect(
+      faucet.connect(user1).requestTokens()
+    ).to.be.revertedWith("Cooldown period not elapsed");
+  });
 
   it("allows claiming after 24 hours", async function () {
     await faucet.connect(user1).requestTokens();
@@ -58,7 +57,7 @@ describe("TokenFaucet", function () {
 
     await expect(
       faucet.connect(user1).requestTokens()
-    ).to.be.revertedWith("Lifetime limit exceeded");
+    ).to.be.revertedWith("Lifetime claim limit reached");
   });
 
   it("admin can pause faucet", async function () {
@@ -71,7 +70,7 @@ describe("TokenFaucet", function () {
   it("non-admin cannot pause faucet", async function () {
     await expect(
       faucet.connect(user1).setPaused(true)
-    ).to.be.revertedWith("Only admin can pause");
+    ).to.be.revertedWith("Only admin can control pause");
   });
 
   it("multiple users can claim independently", async function () {
